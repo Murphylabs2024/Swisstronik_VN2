@@ -2,8 +2,6 @@ import { ethers, network } from 'hardhat'
 import { encryptDataField } from '@swisstronik/utils'
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/src/signers'
 import { HttpNetworkConfig } from 'hardhat/types'
-import * as fs from 'fs'
-import * as path from 'path'
 import deployedAddress from '../utils/deployed-address'
 
 const sendShieldedTransaction = async (
@@ -29,37 +27,20 @@ async function main() {
 
   const [signer] = await ethers.getSigners()
 
-  const contractFactory = await ethers.getContractFactory('TestNFT')
+  const contractFactory = await ethers.getContractFactory('TestToken')
   const contract = contractFactory.attach(contractAddress)
 
-  const mintFunctionName = 'mintNFT'
-  const recipientAddress = signer.address
-  const mintTx = await sendShieldedTransaction(
+  const functionName = 'mint1000tokens'
+  const setMessageTx = await sendShieldedTransaction(
     //@ts-ignore
     signer,
     contractAddress,
-    contract.interface.encodeFunctionData(mintFunctionName, [recipientAddress]),
+    contract.interface.encodeFunctionData(functionName),
     0
   )
-  const mintReceipt = await mintTx.wait()
-  console.log('Mint Transaction Hash: ', mintTx.hash)
+  await setMessageTx.wait()
 
-  const mintEvent = mintReceipt?.logs
-    .map((log) => {
-      try {
-        return contract.interface.parseLog(log)
-      } catch (e) {
-        return null
-      }
-    })
-    .find((event) => event && event.name === 'NFTMinted')
-  const tokenId = mintEvent?.args?.tokenId
-  console.log('Minted NFT ID: ', tokenId.toString())
-
-  const filePath = path.join(__dirname, '../utils/tx-hash.txt')
-  fs.writeFileSync(filePath, `NFT ID ${tokenId} : https://explorer-evm.testnet.swisstronik.com/tx/${mintTx.hash}\n`, {
-    flag: 'a',
-  })
+  console.log('Transaction Receipt: ', setMessageTx)
 }
 
 main().catch((error) => {
